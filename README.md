@@ -1,5 +1,7 @@
 # Bog Payment Client
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/dtchkoidze/go-bog.svg)](https://pkg.go.dev/github.com/dtchkoidze/go-bog)
+
 This package provides a Go client for integrating with the BOG (Bank of Georgia) payment system. It supports authentication, initiating payments, retrieving payment information, and verifying callback signatures.
 
 ## Installation
