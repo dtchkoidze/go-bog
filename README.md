@@ -20,28 +20,43 @@ import gobog "github.com/dtchkoidze/go-bog"
 
 ### 1. Initialize Client
 
-You need to initialize the client with your `ClientID` and `ClientSecret` provided by BOG.
+You can initialize the client with your `ClientID` and `ClientSecret` provided by BOG using the constructor function:
 
 ```go
-client := &gobog.PaymentClient{
-    ClientID:     "your-client-id",
-    ClientSecret: "your-client-secret",
-}
+client := gobog.NewPaymentClient("your-client-id", "your-client-secret")
 ```
 
 ### 2. Request Payment
 
-The client handles authentication automatically. You only need to prepare a payload and make the request:
+The client handles authentication automatically. You can use constructor functions to prepare your payment:
 
 ```go
-payload := gobog.PaymentPayload{
-    Amount:   1000,       // e.g., 1000 for 10.00 GEL
-    Currency: "GEL",
-    OrderID:  "123456789",
-    Customer: "John Doe",
+// Create PurchaseUnits
+basket := []gobog.PaymentItem{
+    *gobog.NewPaymentItem(2, decimal.NewFromFloat(10.50), 123), // 2 items at 10.50 each, product ID 123
+}
+purchaseUnits := gobog.PurchaseUnits{
+    Currency:    "GEL",
+    TotalAmount: 2100, // 21.00 GEL
+    Basket:      basket,
 }
 
-response, err := client.RequestPayment("en", payload)
+// Create RedirectURLs
+redirectURLs := gobog.RedirectURLs{
+    Success: "https://yoursite.com/success",
+    Fail:    "https://yoursite.com/fail",
+}
+
+// Create the payment payload
+payload := gobog.NewPaymentPayload(
+    "https://yoursite.com/callback", // callback URL
+    12345,                          // local order ID
+    purchaseUnits,
+    redirectURLs,
+)
+
+// Make the request
+response, err := client.RequestPayment("en", *payload)
 if err != nil {
     log.Fatal("Payment request failed:", err)
 }
@@ -89,29 +104,48 @@ import (
     "fmt"
     "log"
 
+    "github.com/shopspring/decimal"
     gobog "github.com/dtchkoidze/go-bog"
 )
 
 func main() {
-    client := &gobog.PaymentClient{
-        ClientID:     "your-client-id",
-        ClientSecret: "your-client-secret",
-    }
+    // Initialize client with constructor
+    client := gobog.NewPaymentClient("your-client-id", "your-client-secret")
 
-    payload := gobog.PaymentPayload{
-        Amount:   1000,
-        Currency: "GEL",
-        OrderID:  "123456789",
-        Customer: "John Doe",
+    // Create payment items with constructor
+    item1 := gobog.NewPaymentItem(2, decimal.NewFromFloat(10.50), 123)
+    item2 := gobog.NewPaymentItem(1, decimal.NewFromFloat(5.00), 456)
+    
+    // Create purchase units
+    purchaseUnits := gobog.PurchaseUnits{
+        Currency:    "GEL",
+        TotalAmount: 2600, // 26.00 GEL (2 x 10.50 + 1 x 5.00)
+        Basket:      []gobog.PaymentItem{*item1, *item2},
     }
+    
+    // Create redirect URLs
+    redirectURLs := gobog.RedirectURLs{
+        Success: "https://yoursite.com/success",
+        Fail:    "https://yoursite.com/fail",
+    }
+    
+    // Create payment payload with constructor
+    payload := gobog.NewPaymentPayload(
+        "https://yoursite.com/callback",
+        12345,
+        purchaseUnits,
+        redirectURLs,
+    )
 
-    response, err := client.RequestPayment("en", payload)
+    // Request payment
+    response, err := client.RequestPayment("en", *payload)
     if err != nil {
         log.Fatal("Payment request failed:", err)
     }
     fmt.Println("Payment Response:", response)
 
-    info, err := client.RequestPaymentInfo("payment-id")
+    // Get payment info
+    info, err := client.RequestPaymentInfo(response.ID)
     if err != nil {
         log.Fatal("Failed to get payment info:", err)
     }
@@ -121,40 +155,63 @@ func main() {
 
 ## Exported Functions
 
-### `auth() error`
+### Constructor Functions
+
+#### `NewPaymentClient(clientID, clientSecret string) *PaymentClient`
+
+Creates a new payment client with the given credentials.
+
+#### `NewPaymentPayload(cbURL string, loID int, pus PurchaseUnits, rURLS RedirectURLs) *PaymentPayload`
+
+Creates a new payment payload with all required fields.
+
+#### `NewPaymentItem(q int, up decimal.Decimal, pID int) *PaymentItem`
+
+Creates a new payment item with quantity, unit price, and product ID.
+
+### Client Methods
+
+#### `auth() error`
 
 Handles internal token authentication (called automatically).
 
-### `RequestPayment(acceptLang string, payload PaymentPayload) (*PaymentResponse, error)`
+#### `RequestPayment(acceptLang string, payload PaymentPayload) (*PaymentResponse, error)`
 
 Initiates a payment.
 
-### `RequestPaymentInfo(paymentID string) (*PaymentInfo, error)`
+#### `RequestPaymentInfo(paymentID string) (*PaymentInfo, error)`
 
 Fetches payment details by ID.
 
-### `VerifyCallbackSignature(rawBody []byte, signatureHeader string, publicKey *rsa.PublicKey) error`
+#### `VerifyCallbackSignature(rawBody []byte, signatureHeader string, publicKey *rsa.PublicKey) error`
 
 Verifies callback payload integrity.
 
-### `LogPayload(payload *PaymentPayload)`
+#### `LogPayload(payload *PaymentPayload)`
 
 Logs the outgoing payment payload for debugging.
 
 ## Dependencies
 
-Built-in Go libraries used:
+### External Dependencies
+* `github.com/shopspring/decimal` - Precise decimal arithmetic
+
+### Built-in Go libraries used:
 * `crypto/rsa`, `crypto/sha256`
 * `encoding/json`, `encoding/base64`
 * `net/http`, `io`, `log`
+* `time`
 
 ## Support
+
 If you encounter any issues or have questions about this package:
 
-Check the GitHub Issues page to see if your problem has been reported
-Open a new issue with details about the problem, including code samples and error messages
-For urgent matters, contact the maintainer directly at dtchkoiddze@gmail.com
+1. Check the [GitHub Issues](https://github.com/dtchkoidze/go-bog/issues) page to see if your problem has been reported
+2. Open a new issue with details about the problem, including code samples and error messages
+3. For urgent matters, contact the maintainer directly at [dtchkoiddze@gmail.com](mailto:dtchkoiddze@gmail.com)
+
 
 ## License
 
 MIT License. See the LICENSE file.
+
