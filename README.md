@@ -1,46 +1,44 @@
 # Bog Payment Client
 
-This package provides a Go client for integrating with the BOG (Bank of Georgia) payment system. It includes functionality to authenticate, request payments, retrieve payment information, and verify callback signatures.
+This package provides a Go client for integrating with the BOG (Bank of Georgia) payment system. It supports authentication, initiating payments, retrieving payment information, and verifying callback signatures.
 
 ## Installation
 
-To use this package, ensure you have Go installed on your machine. You can install it from the official site: [Go Installation](https://golang.org/doc/install).
+Ensure you have Go installed. Then, run:
 
-To use this package, import it into your Go project:
+```bash
+go get github.com/dtchkoidze/go-bog
+```
+
+In your code:
 
 ```go
-import "path/to/your/package"
+import gobog "github.com/dtchkoidze/go-bog"
 ```
 
 ## Usage
 
-### 1. Authentication
+### 1. Initialize Client
 
-Before making any payment requests, the client must authenticate with the BOG API. This is done using the `ClientID` and `ClientSecret` provided by the BOG API. RequestPayment will do this for you anyway.
+You need to initialize the client with your `ClientID` and `ClientSecret` provided by BOG.
 
 ```go
-client := &BogPaymentClient{
+client := &gobog.PaymentClient{
     ClientID:     "your-client-id",
     ClientSecret: "your-client-secret",
 }
-
-token, err := client.authentificate()
-if err != nil {
-    log.Fatal("Authentication failed:", err)
-}
-fmt.Println("Access Token:", token)
 ```
 
 ### 2. Request Payment
 
-Once authenticated, you can create a payment request using the `RequestPayment` function.
+The client handles authentication automatically. You only need to prepare a payload and make the request:
 
 ```go
-payload := BogPaymentPayload{
-    Amount:    1000, // Example: 1000 for 10.00 units
-    Currency:  "GEL", // Example: Georgian Lari
-    OrderID:   "123456789",
-    Customer:  "John Doe",
+payload := gobog.PaymentPayload{
+    Amount:   1000,       // e.g., 1000 for 10.00 GEL
+    Currency: "GEL",
+    OrderID:  "123456789",
+    Customer: "John Doe",
 }
 
 response, err := client.RequestPayment("en", payload)
@@ -53,27 +51,28 @@ fmt.Println("Payment Response:", response)
 
 ### 3. Request Payment Info
 
-After initiating a payment, you can request information about the payment using the `RequestPaymentInfo` function.
+Retrieve information about a previously initiated payment:
 
 ```go
-paymentInfo, err := client.RequestPaymentInfo("payment-id")
+info, err := client.RequestPaymentInfo("payment-id")
 if err != nil {
     log.Fatal("Failed to get payment info:", err)
 }
 
-fmt.Println("Payment Info:", paymentInfo)
+fmt.Println("Payment Info:", info)
 ```
 
 ### 4. Verify Callback Signature
 
-When receiving a callback from the BOG API, you need to verify the integrity of the callback data by checking the signature. Use the `VerifyCallbackSignature` function to verify the signature.
+Use this to verify callback payloads using the public key provided by BOG:
 
 ```go
-publicKey := // Load or parse your public key, find it on: https://api.bog.ge/docs/en/payments/standard-process/callback
+// Load or parse your public key (from https://api.bog.ge/docs/en/payments/standard-process/callback)
+publicKey := /* *rsa.PublicKey */
 signature := "base64-encoded-signature"
 rawBody := []byte("callback-payload")
 
-err := VerifyCallbackSignature(rawBody, signature, publicKey)
+err := gobog.VerifyCallbackSignature(rawBody, signature, publicKey)
 if err != nil {
     log.Fatal("Signature verification failed:", err)
 }
@@ -81,91 +80,81 @@ if err != nil {
 fmt.Println("Signature verified successfully!")
 ```
 
-### Example Code
+## Example
 
 ```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    gobog "github.com/dtchkoidze/go-bog"
+)
 
 func main() {
-	// Initialize client
-	client := &BogPaymentClient{
-		ClientID:     "your-client-id",
-		ClientSecret: "your-client-secret",
-	}
+    client := &gobog.PaymentClient{
+        ClientID:     "your-client-id",
+        ClientSecret: "your-client-secret",
+    }
 
-	// Authenticate client
-	token, err := client.authentificate()
-	if err != nil {
-		log.Fatal("Authentication failed:", err)
-	}
-	fmt.Println("Access Token:", token)
+    payload := gobog.PaymentPayload{
+        Amount:   1000,
+        Currency: "GEL",
+        OrderID:  "123456789",
+        Customer: "John Doe",
+    }
 
-	// Prepare payment payload
-	payload := BogPaymentPayload{
-		Amount:   1000,
-		Currency: "GEL",
-		OrderID:  "123456789",
-		Customer: "John Doe",
-	}
+    response, err := client.RequestPayment("en", payload)
+    if err != nil {
+        log.Fatal("Payment request failed:", err)
+    }
+    fmt.Println("Payment Response:", response)
 
-	// Request payment
-	response, err := client.RequestPayment("en", payload)
-	if err != nil {
-		log.Fatal("Payment request failed:", err)
-	}
-	fmt.Println("Payment Response:", response)
-
-	// Request payment information
-	paymentInfo, err := client.RequestPaymentInfo("payment-id")
-	if err != nil {
-		log.Fatal("Failed to get payment info:", err)
-	}
-	fmt.Println("Payment Info:", paymentInfo)
+    info, err := client.RequestPaymentInfo("payment-id")
+    if err != nil {
+        log.Fatal("Failed to get payment info:", err)
+    }
+    fmt.Println("Payment Info:", info)
 }
 ```
 
-## Functions
+## Exported Functions
 
-### `authentificate()`
+### `auth() error`
 
-Authenticates with the BOG API using the client credentials (`ClientID` and `ClientSecret`) and retrieves an access token.
+Handles internal token authentication (called automatically).
 
-### `RequestPayment(acceptLang string, payload BogPaymentPayload)`
+### `RequestPayment(acceptLang string, payload PaymentPayload) (*PaymentResponse, error)`
 
-Initiates a payment request to the BOG API. Requires an access token obtained from authentication and a payment payload.
+Initiates a payment.
 
-### `RequestPaymentInfo(paymentID string)`
+### `RequestPaymentInfo(paymentID string) (*PaymentInfo, error)`
 
-Retrieves information about a specific payment using the provided `paymentID`.
+Fetches payment details by ID.
 
 ### `VerifyCallbackSignature(rawBody []byte, signatureHeader string, publicKey *rsa.PublicKey) error`
 
-Verifies the signature of the callback received from the BOG API to ensure the integrity of the callback data.
+Verifies callback payload integrity.
 
-### `LogPayload(payload *BogPaymentPayload)`
+### `LogPayload(payload *PaymentPayload)`
 
-Logs the payment payload for debugging purposes.
-
-## Error Handling
-
-The functions in this package return errors in the event of failure. Ensure to handle errors when calling these functions.
+Logs the outgoing payment payload for debugging.
 
 ## Dependencies
 
-This package uses the following libraries:
+Built-in Go libraries used:
+* `crypto/rsa`, `crypto/sha256`
+* `encoding/json`, `encoding/base64`
+* `net/http`, `io`, `log`
 
-* `crypto/rsa`
-* `crypto/sha256`
-* `encoding/json`
-* `encoding/base64`
-* `net/http`
-* `log`
+## Support
+If you encounter any issues or have questions about this package:
 
-Ensure these libraries are available in your Go environment.
+Check the GitHub Issues page to see if your problem has been reported
+Open a new issue with details about the problem, including code samples and error messages
+For urgent matters, contact the maintainer directly at dtchkoiddze@gmail.com
 
 ## License
 
-This package is licensed under the MIT License. See the LICENSE file for more information.
-
----
-
-For more details on how to interact with the BOG API, refer to the official documentation provided by the Bank of Georgia.
+MIT License. See the LICENSE file.
