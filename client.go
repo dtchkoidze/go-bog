@@ -1,4 +1,4 @@
-package main
+package gobog
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ const (
 	reqPaymentInfoURL = "https://api.bog.ge/payments/v1/receipt/"
 )
 
-func (b *BogPaymentClient) authentificate() (string, error) {
+func (b *PaymentClient) authentificate() (string, error) {
 	form := url.Values{}
 	form.Set("grant_type", "client_credentials")
 	body := strings.NewReader(form.Encode())
@@ -58,7 +58,7 @@ func (b *BogPaymentClient) authentificate() (string, error) {
 	return authResponse.AccessToken, nil
 }
 
-func (b *BogPaymentClient) RequestPayment(acceptLang string, payload BogPaymentPayload) (*BogPaymentResponse, error) {
+func (b *PaymentClient) RequestPayment(acceptLang string, payload PaymentPayload) (*PaymentResponse, error) {
 	err := b.auth()
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (b *BogPaymentClient) RequestPayment(acceptLang string, payload BogPaymentP
 		return nil, err
 	}
 
-	var paymentResp BogPaymentResponse
+	var paymentResp PaymentResponse
 	if err := json.Unmarshal(resBody, &paymentResp); err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (b *BogPaymentClient) RequestPayment(acceptLang string, payload BogPaymentP
 	return &paymentResp, nil
 }
 
-func (b *BogPaymentClient) RequestPaymentInfo(paymentID string) (*BogPaymentInfo, error) {
+func (b *PaymentClient) RequestPaymentInfo(paymentID string) (*PaymentInfo, error) {
 
 	client := &http.Client{}
 
@@ -119,7 +119,7 @@ func (b *BogPaymentClient) RequestPaymentInfo(paymentID string) (*BogPaymentInfo
 
 	defer resp.Body.Close()
 
-	var info BogPaymentInfo
+	var info PaymentInfo
 
 	err = json.NewDecoder(resp.Body).Decode(&info)
 	if err != nil {
@@ -130,7 +130,7 @@ func (b *BogPaymentClient) RequestPaymentInfo(paymentID string) (*BogPaymentInfo
 
 }
 
-func (b *BogPaymentClient) auth() error {
+func (b *PaymentClient) auth() error {
 	if b.token == nil {
 		token, err := b.authentificate()
 		if err != nil {
@@ -141,7 +141,7 @@ func (b *BogPaymentClient) auth() error {
 	return nil
 }
 
-func (b *BogPaymentClient) LogPayload(payload *BogPaymentPayload) {
+func (b *PaymentClient) LogPayload(payload *PaymentPayload) {
 	log.Printf("Sending payment request. Payload is: %+v\n \n", payload)
 }
 

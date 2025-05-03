@@ -1,4 +1,4 @@
-package main
+package gobog
 
 import (
 	"time"
@@ -6,32 +6,28 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type PaymentClient interface {
-	Pay() *any
-}
-
-type BogPaymentClient struct {
+type PaymentClient struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 	token        *string
 }
 
-func NewBogPaymentClient(clientID, clientSecret string) *BogPaymentClient {
-	return &BogPaymentClient{
+func NewPaymentClient(clientID, clientSecret string) *PaymentClient {
+	return &PaymentClient{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 	}
 }
 
-type BogPaymentPayload struct {
+type PaymentPayload struct {
 	CallbackURL   string        `json:"callback_url"`
 	LocalOrderId  int           `json:"external_order_id"`
 	PurchaseUnits PurchaseUnits `json:"purchase_units"`
 	RedirectURLs  RedirectURLs  `json:"redirect_urls"`
 }
 
-func NewBogPaymentPayload(cbURL string, loID int, pus PurchaseUnits, rURLS RedirectURLs) *BogPaymentPayload {
-	return &BogPaymentPayload{
+func NewPaymentPayload(cbURL string, loID int, pus PurchaseUnits, rURLS RedirectURLs) *PaymentPayload {
+	return &PaymentPayload{
 		LocalOrderId:  loID,
 		PurchaseUnits: pus,
 		RedirectURLs:  rURLS,
@@ -46,12 +42,12 @@ func NewPaymentItem(q int, up decimal.Decimal, pID int) *PaymentItem {
 	}
 }
 
-type BogPaymentResponse struct {
-	ID    string          `json:"id"`
-	Links BogPaymentLinks `json:"_links"`
+type PaymentResponse struct {
+	ID    string       `json:"id"`
+	Links PaymentLinks `json:"_links"`
 }
 
-type BogPaymentLinks struct {
+type PaymentLinks struct {
 	Details  Link `json:"details"`
 	Redirect Link `json:"redirect"`
 }
@@ -77,7 +73,7 @@ type PaymentItem struct {
 	ProductID int             `json:"product_id"`
 }
 
-type BogPaymentInfo struct {
+type PaymentInfo struct {
 	OrderID         string    `json:"order_id"`
 	Industry        string    `json:"industry"`
 	Capture         string    `json:"capture"`
