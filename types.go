@@ -10,6 +10,7 @@ type PaymentClient struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 	token        *string
+	tokenExpiry  time.Time
 }
 
 func NewPaymentClient(clientID, clientSecret string) *PaymentClient {
